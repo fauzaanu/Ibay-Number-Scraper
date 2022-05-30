@@ -31,34 +31,6 @@ class IbaySession :
         self.ibay_links_2 = str('//h5/a') #working version
         self.ibay_number_area = str('/html/body/div[4]/div[3]/div[3]/div[1]/div/div[3]/div[1]/table/tbody/tr/td[2]')
        
-
-        self.uname =  str("//input[@name = 'username']")
-        self.password =  str("//input[@name = 'password']")
-        self.follow_button =  str("//button[text()='Follow']")
-        self.follow_suggestions_updated = str("//*/button/div[text()='Follow']")
-        self.turnon =  str("//button[text()='Turn On']")
-        self.notnow =  str("//button[text()='Not Now']")
-        self.saveinfo =  str("//button[text()='Save Info']")
-        self.post_like_button = str('//*[@aria-label="Like" and @width="24"]')
-        self.updated_like_button = str('//*[@aria-label="Like" and @width="24"]/parent::div/parent::button')
-        self.user_btn =  str("//article[@role='presentation']/header/div[2]//div/span/a[@href]")
-        self.bio_selector =  str("//*[@id='react-root']/section/main/div/header/section/div[2]/span[text()]")
-        self.name_selector =  str('//header/div/div/div/span/a[not(contains(text(),"#"))]')
-        self.home =  str("//a[@href='/']")
-        self.story_btn =  str("//*[@id='react-root']/section/main/section/div[1]/div[1]/div/div/div/div/ul/li[3]/div/button")
-        self.story_close_btn =  str("//*[@aria-label='Close']")
-        self.search_input =  str("//*[@id='react-root']/section/nav/div[2]/div/div/div[2]/input")
-        self.first_pic =  str("//div/a[@href]")
-        self.pic_next_btn =  str("//div/a[text()='Next']")
-        self.profile_link =  str("//header/div[2]/div[1]/div/span/a[@href]")
-        self.likes_amnt =  str("//a/span[text()]")
-        self.term = None
-        self.item = f'//a[@href="/explore/tags/{self.term}/"]'
-        self.ratelimit = f'//div[text()="We restrict certain activity to protect our community."]'
-        self.image_xpath = f"//div/div/div/img[@srcset!='']"
-        self.unfollowers = f"/html/body/div[1]/div/div/section/main/div/header/section/ul/li[3]/a"
-        self.unfollow_act = f"//*/button/div[text()='Following']/parent::button"
-        self.confirm_unfollow = f"/html/body/div[7]/div/div/div/div[3]/button[1]"
         
         #setup the proxy
         if use_proxy == True:
