@@ -13,7 +13,8 @@ pip install selenium
 
 Possible use cases
 -----------------------
-Find b2b contacts in certain industries
+Find business contacts/prospects in certain industries
+
 competition research
 
 TODO
