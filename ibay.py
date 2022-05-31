@@ -1,7 +1,3 @@
-from lib2to3.pgen2 import driver
-import os
-from pickle import NONE
-import random
 import time
 from numpy import number
 from selenium import webdriver
@@ -16,42 +12,40 @@ from selenium.common.exceptions import NoSuchElementException, StaleElementRefer
 from selenium.webdriver.common.proxy import Proxy, ProxyType
 import tkinter
 import re
+import chromedriver_autoinstaller
+import os
+
+
 
 class IbaySession :
     def __init__ (self, use_proxy=False) :
         """
         Ibay Session initialization
         """
-        #Globals for the class that maybe useful across other modules
         #DEFINE ALL IMPORTANT STUFF THAT IBAY MAY CHANGE HERE
         self.baseurl =  str("http://www.ibay.com.mv")
         self.ibay_Search_bar = str(" //input[@name='q'] ")
         self.ibay_next = str('//*/li/a/i[text()="navigate_next"]')
-        self.ibay_links  = str('//*[@class="latest-list-item"]/div/div/div/a') #failed
+        # self.ibay_links  = str('//*[@class="latest-list-item"]/div/div/div/a') #failed
         self.ibay_links_2 = str('//h5/a') #working version
-        self.ibay_number_area = str('/html/body/div[4]/div[3]/div[3]/div[1]/div/div[3]/div[1]/table/tbody/tr/td[2]')
-        self.end_reached = False
+        self.ibay_number_area = str('/html/body/div[4]/div[3]/div[3]/div[1]/div/div[3]/div[1]/table/tbody/tr/td[2]') #hard coded as only one area
+        self.end_reached = False #when navigation reaches end lets save time 
+        self.current_dir = os.getcwd()
         
         #setup the proxy
-        if use_proxy == True:
+        if use_proxy == True: #just incase ibay starts blocking
             prox = Proxy()
             prox.proxy_type = ProxyType.MANUAL
-            prox.http_proxy = "45.66.238.4:8800"
+            prox.http_proxy = ""
             prox.socks_proxy = ""
-            prox.ssl_proxy = "45.66.238.4:8800"
+            prox.ssl_proxy = ""
             capabilities = webdriver.DesiredCapabilities.CHROME
             prox.add_to_capabilities(capabilities)
-
-            #remmeber to remove the executable path here
-            self.driver = webdriver.Chrome(desired_capabilities=capabilities,executable_path="C:\Program Files\Google\Chrome\Application\chrome.exe")
+            self.driver = webdriver.Chrome()        
         else:
-            options = webdriver.ChromeOptions() 
-            options.add_experimental_option("excludeSwitches", ["enable-logging"])
-            # options.add_experimental_option("debuggerAddress","localhost:<remote-port>")
-
             self.driver = webdriver.Chrome()
-        ignored_exceptions = [StaleElementReferenceException,ElementNotInteractableException,SessionNotCreatedException]
-        self.wait = WebDriverWait(self.driver,20,ignored_exceptions=ignored_exceptions)
+            ignored_exceptions = [StaleElementReferenceException,ElementNotInteractableException,SessionNotCreatedException]
+            self.wait = WebDriverWait(self.driver,5,ignored_exceptions=ignored_exceptions)
 
     def HomePage(self):
         """
@@ -70,7 +64,7 @@ class IbaySession :
             searchbar = self.wait.until(EC.presence_of_element_located((By.XPATH,self.ibay_Search_bar)))
             ActionChains(self.driver).move_to_element(searchbar).click(searchbar).send_keys(search_term).send_keys(Keys.ENTER).perform()
         except Exception as ex:
-            print(ex)
+            #print(ex)
             self.driverExit()
         
        
@@ -85,25 +79,21 @@ class IbaySession :
         """
         Goes to the next page should it exist
         """
-
-
         #next button cannot be clicked if the screensize is not full  so use tkinter
         self.screen_resize()
         try:
             nextpage_button = self.wait.until(EC.presence_of_element_located((By.XPATH,self.ibay_next)))
             ActionChains(self.driver).move_to_element(nextpage_button).click(nextpage_button).perform()
         except:
-            self.end_reached = True
+            self.end_reached = True #let all functions know that a next page button was not found.
             pass
-            #one cause could be that there is no next button as it is the end
+            
 
-
-
-    def collect_links(self,query=NONE,limit=1):
+    def collect_links(self,query=465,limit=1):
         """
         collects links present in the page
         """
-        if query == NONE:
+        if query == 465: #465 is a random number
             pass
         else:
             self.SearchIbay(query)
@@ -112,16 +102,14 @@ class IbaySession :
                 if self.end_reached == True:
                     break
                 links_objects = self.wait.until(EC.presence_of_all_elements_located((By.XPATH,self.ibay_links_2)))
-                #rlinks = []
                 wlinks = []
 
                 for link in links_objects:
-                    #print(link)
                     wlinks.append(link.get_attribute('href'))
 
                 
                 # Saving the found links list to a file (overwrite)
-                with open(f"{query}.txt",'a') as file:
+                with open(f"{self.current_dir}/{query}/links.txt",'a') as file:
                     for link in wlinks:
                         if "javascript:;" in str(link):
                             continue
@@ -156,12 +144,12 @@ class IbaySession :
             # print(ibay_number)
             return ibay_number
         except:
-            return 1000000
+            return 404
 
     def RunTheNumbers(self,term):
         #:Load the links from the file  to a list - Only for a nessesary use - this wont be used normally
         try:
-            content = open(f"{term}.txt",'r')
+            content = open(f"{self.current_dir}/{term}/links.txt",'r')
             readLinks = []
 
             for line in content:
@@ -175,9 +163,9 @@ class IbaySession :
         try:
             for link in readLinks:
                 result = self.NumberScraper(link)
-                
-                with open(f"{term} Numbers.txt",'a') as file:   
-                    file.write(f'{result} + "\n"')
+                if result != 404: #404 is returned when no number found: so do not write it to the actual file
+                    with open(f"{self.current_dir}/{term}/Numbers.txt",'a') as file:   
+                        file.write(f'{result} \n')
 
         except:
             pass
@@ -216,53 +204,36 @@ class IbaySession :
             for num in duplicate_nums:
                 file.write(str(num)+ "\n")
 
-
-
-    def complete(self,term,limit):
+    def complete(self,sterm,limit):
         """
         runs the full sequence
         """
-        self.collect_links(term,limit)
-        self.RunTheNumbers(term)
-        self.cleanup(f"{term} Numbers.txt")
+        self.folder_check(sterm)
+        self.collect_links(sterm,limit)
+        self.RunTheNumbers(sterm)
+        self.cleanup(f"{self.current_dir}/{sterm}/Numbers.txt")
         self.driverExit()
 
+    def  folder_check(self,term):
+        """"
+        check if a folder exists for the term work is done on. if not this function should create them
+        """
+        cwd = os.getcwd() #current working directory
+        if os.path.isdir(term) == True:
+            return 1
+        else:
+            os.mkdir(term)
+
+
+
 if __name__ =="__main__":
+
+    #chromium automatic installation
+    chromedriver_autoinstaller.install()
+
     session = IbaySession()
     # session.collect_links("Mobile Phone",limit=5)
     # session.RunTheNumbers(f"Mobile Phone")
     # session.cleanup("Mobile Phone Numbers.txt")
     # session.driverExit()
     session.complete("Vape",20)
-
-
-
-
-
-
-
-#important snippets
-    #         # waiting for and closing the notifications dialog
-            
-    #         possible_buttons = ["Save Info","Turn On"]
-    #         dialog = self.wait.until(EC.presence_of_element_located((By.XPATH,self.saveinfo)))
-    #         ActionChains(self.driver).move_to_element(dialog).click(dialog).perform()
-            
-
-    #         dialog = self.wait.until(EC.presence_of_element_located((By.XPATH,self.turnon)))
-    #         dialog = self.wait.until(EC.presence_of_element_located((By.XPATH,self.notnow)))
-    #         ActionChains(self.driver).move_to_element(dialog).click(dialog).perform()
-
-# # posts_like_buttons = self.wait.until(
-# EC. presence_of_all_elements_located (
-# (
-
-    #         # using an action chain to write the username and password
-    #         # into the two input fields on the login screen
-    #         action_chain = ActionChains(self.driver)
-    #         action_chain.move_to_element(username_input).click()
-    #         action_chain.send_keys(username)
-    #         action_chain.move_to_element(password_input).click()
-    #         action_chain.send_keys(password)
-    #         action_chain.send_keys(Keys.ENTER)
-    #         action_chain.perform()
