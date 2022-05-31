@@ -30,7 +30,7 @@ class IbaySession :
         self.ibay_links  = str('//*[@class="latest-list-item"]/div/div/div/a') #failed
         self.ibay_links_2 = str('//h5/a') #working version
         self.ibay_number_area = str('/html/body/div[4]/div[3]/div[3]/div[1]/div/div[3]/div[1]/table/tbody/tr/td[2]')
-       
+        self.end_reached = False
         
         #setup the proxy
         if use_proxy == True:
@@ -93,6 +93,7 @@ class IbaySession :
             nextpage_button = self.wait.until(EC.presence_of_element_located((By.XPATH,self.ibay_next)))
             ActionChains(self.driver).move_to_element(nextpage_button).click(nextpage_button).perform()
         except:
+            self.end_reached = True
             pass
             #one cause could be that there is no next button as it is the end
 
@@ -108,6 +109,8 @@ class IbaySession :
             self.SearchIbay(query)
         try:
             for i in range(limit):
+                if self.end_reached == True:
+                    break
                 links_objects = self.wait.until(EC.presence_of_all_elements_located((By.XPATH,self.ibay_links_2)))
                 #rlinks = []
                 wlinks = []
@@ -130,8 +133,8 @@ class IbaySession :
             
 
         except Exception as x:
-            print(x.with_traceback)
-            pass
+            #print("END REACHED, QUITING FUNCTION")
+            return 'done'
 
         
     def screen_resize(self,WIDTH=0,HEIGHT=0):
@@ -146,11 +149,14 @@ class IbaySession :
 
 
     def NumberScraper(self,url):
-        self.driver.get(url)
-        ibay_number_obj = self.wait.until(EC.presence_of_element_located((By.XPATH,self.ibay_number_area)))
-        ibay_number = ibay_number_obj.get_attribute('innerHTML')
-        # print(ibay_number)
-        return ibay_number
+        try:
+            self.driver.get(url)
+            ibay_number_obj = self.wait.until(EC.presence_of_element_located((By.XPATH,self.ibay_number_area)))
+            ibay_number = ibay_number_obj.get_attribute('innerHTML')
+            # print(ibay_number)
+            return ibay_number
+        except:
+            return 1000000
 
     def RunTheNumbers(self,term):
         #:Load the links from the file  to a list - Only for a nessesary use - this wont be used normally
@@ -169,9 +175,9 @@ class IbaySession :
         try:
             for link in readLinks:
                 result = self.NumberScraper(link)
-                #removing the duplicates from the list by changing to a set and  back to a list
+                
                 with open(f"{term} Numbers.txt",'a') as file:   
-                    file.write(result + "\n")
+                    file.write(f'{result} + "\n"')
 
         except:
             pass
@@ -187,35 +193,47 @@ class IbaySession :
         ooredoo_numbers = re.compile(r'9\d\d\d\d\d\d')
         numbers = []
         tmpfile = open(f"{filename}",'r')
-        for line in tmpfile:
-            #print(line)
-            Dhiraagu_robj = dhiraagu_numbers.search(line)
-            Ooredoo_robj = ooredoo_numbers.search(line)
-            try:
-                if int(Dhiraagu_robj.group()) > 7000000:            
-                    numbers.append(int(Dhiraagu_robj.group()))
-                if int(Ooredoo_robj.group()) > 9000000:
-                    numbers.append(int(Ooredoo_robj.group()))
-            except AttributeError:
-                pass
-                #print("AttributeError")
+        filetext = tmpfile.read()
+        Dhiraagu_robj = dhiraagu_numbers.findall(filetext)
+        print(Dhiraagu_robj)
+        Ooredoo_robj = ooredoo_numbers.findall(filetext)
+        print(Ooredoo_robj) 
 
-        #Removing the duplicates       
-        numbers_tmp = list(set(numbers))
-        numbers = numbers_tmp
-        print(numbers)
-        
-        # >>> mo = phoneNumRegex.search('My number is 415-555-4242.')
-        # >>> print('Phone number found: ' + mo.group())
-        # Phone number found: 415-555-4242
+        original_list = []
+        # #Removing the duplicates + combining
+        duplicate_nums = Dhiraagu_robj+Ooredoo_robj
 
+        #convert all to integers - 
+        for i in range(0, len(duplicate_nums)):
+            original_list.append(int(duplicate_nums[i]))
+
+
+        duplicate_tmp  = set(original_list)
+        duplicate_nums = duplicate_tmp
+
+        #replace the file with the cleaned up file
+        with open(f"{filename}",'w') as file:
+            for num in duplicate_nums:
+                file.write(str(num)+ "\n")
+
+
+
+    def complete(self,term,limit):
+        """
+        runs the full sequence
+        """
+        self.collect_links(term,limit)
+        self.RunTheNumbers(term)
+        self.cleanup(f"{term} Numbers.txt")
+        self.driverExit()
 
 if __name__ =="__main__":
     session = IbaySession()
     # session.collect_links("Mobile Phone",limit=5)
     # session.RunTheNumbers(f"Mobile Phone")
-    session.cleanup("Mobile Phone Numbers.txt")
-    session.driverExit()
+    # session.cleanup("Mobile Phone Numbers.txt")
+    # session.driverExit()
+    session.complete("Vape",20)
 
 
 
