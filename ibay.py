@@ -1,5 +1,4 @@
 import time
-from numpy import number
 from selenium import webdriver
 from selenium.webdriver.common import keys
 from selenium.webdriver.common import action_chains
@@ -14,6 +13,7 @@ import tkinter
 import re
 import chromedriver_autoinstaller
 import os
+import argparse
 
 
 
@@ -228,12 +228,45 @@ class IbaySession :
 
 if __name__ =="__main__":
 
+    #argparse - firsttime using it... official python doc example:
+# parser = argparse.ArgumentParser(description='Process some integers.')
+# parser.add_argument('integers', metavar='N', type=int, nargs='+',
+#                     help='an integer for the accumulator')
+# parser.add_argument('--sum', dest='accumulate', action='store_const',
+#                     const=sum, default=max,
+#                     help='sum the integers (default: find the max)')
+
+# args = parser.parse_args()
+# print(args.accumulate(args.integers))
+
+    parser = argparse.ArgumentParser(description='...')
+    parser.add_argument('term',type=str)
+    parser.add_argument('limit',type=int)
+
+    args = parser.parse_args()
+
+
+
+
+
+
     #chromium automatic installation
     chromedriver_autoinstaller.install()
+
+
+
+    try:
+        search_term = args.term
+        limit = args.limit
+
+    except:
+        search_term = input("Whats the search term?")
+        limit = int(input("Amount of pages to look go next?"))
+
 
     session = IbaySession()
     # session.collect_links("Mobile Phone",limit=5)
     # session.RunTheNumbers(f"Mobile Phone")
     # session.cleanup("Mobile Phone Numbers.txt")
     # session.driverExit()
-    session.complete("Vape",20)
+    session.complete(search_term,limit)
